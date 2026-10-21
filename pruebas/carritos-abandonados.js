@@ -70,3 +70,4 @@ export default function () {
   // El usuario NO realiza el checkout (simulando abandono).
   sleep(90);
 }
+

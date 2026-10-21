@@ -115,3 +115,4 @@ En el formulario de Mercado Pago:
 - **Pregunta:** *¿Cuál es el límite del diseño de confirmación al volver?*
 - **Respuesta:** Si el cliente paga exitosamente en Mercado Pago pero cierra el navegador o pierde la conexión a Internet antes de ser redirigido de vuelta a la tienda, la petición GET a `/Checkout/Success` nunca llega y el pedido queda temporalmente en `PENDIENTE_PAGO`.
 - **Solución en producción:** Implementar **Webhooks asíncronos** (notificaciones IPN servidor a servidor con firma HMAC verificada) para que Mercado Pago avise a la tienda en segundo plano independientemente de lo que haga el navegador del cliente.
+
