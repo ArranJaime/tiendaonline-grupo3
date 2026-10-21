@@ -1,7 +1,65 @@
-<div class="panel success">
- <div class="success-icon">✓</div>
- <h1>Pedido registrado, ¡gracias!</h1>
- <p>Tu pedido <b>#@ViewBag.OrderId</b> quedó registrado en PostgreSQL con estado <b>PENDIENTE_PAGO</b>.</p>
- <p class="hint">Esta aplicación es un laboratorio educativo: no procesa pagos reales.</p>
- <a class="btn-cart inline" asp-controller="Home" asp-action="Index">Seguir comprando</a>
+@model TiendaOnline.Models.Order
+@{
+    ViewData["Title"] = "Estado del Pedido";
+    var status = ViewBag.PaymentStatus as string ?? (Model?.Status == "PAGADO" ? "approved" : "pending");
+    var paymentId = ViewBag.PaymentId as string ?? "N/A";
+    var statusDetail = ViewBag.StatusDetail as string ?? "";
+    var orderId = Model?.Id ?? ViewBag.OrderId ?? 0;
+}
+
+<div class="panel @(status == "approved" ? "success" : (status == "rejected" ? "error" : "warning"))" style="max-width: 650px; margin: 2rem auto; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); background: white;">
+    @if (status == "approved")
+    {
+        <div class="success-icon" style="font-size: 3rem; color: #2ca02c; text-align: center;">✓</div>
+        <h1 style="text-align: center; color: #2ca02c; margin-top: 0.5rem;">¡Pago Aprobado y Confirmado!</h1>
+        <p style="text-align: center; font-size: 1.1rem; color: #374151;">Tu pedido <b>#@orderId</b> ha sido verificado con éxito.</p>
+        
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 1rem; margin: 1.5rem 0;">
+            <p style="margin: 0.4rem 0;"><b>Estado en PostgreSQL:</b> <span style="background: #2ca02c; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold;">PAGADO</span></p>
+            <p style="margin: 0.4rem 0;"><b>N.º Transacción Mercado Pago:</b> <code>@paymentId</code></p>
+            @if (Model != null)
+            {
+                <p style="margin: 0.4rem 0;"><b>Total pagado:</b> S/ @Model.Total.ToString("F2")</p>
+            }
+            <p style="margin: 0.6rem 0 0 0; font-size: 0.9rem; color: #15803d; line-height: 1.4;">
+                🔒 <i>Verificación segura desde el servidor: la tienda consultó a la API de Mercado Pago y confirmó el estado antes de marcar la orden como PAGADA.</i>
+            </p>
+        </div>
+    }
+    else if (status == "rejected")
+    {
+        <div class="error-icon" style="font-size: 3rem; color: #d62728; text-align: center;">✗</div>
+        <h1 style="text-align: center; color: #d62728; margin-top: 0.5rem;">Pago Rechazado por la Pasarela</h1>
+        <p style="text-align: center; font-size: 1.1rem; color: #374151;">El pago del pedido <b>#@orderId</b> no fue aprobado.</p>
+        
+        <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 1rem; margin: 1.5rem 0;">
+            <p style="margin: 0.4rem 0;"><b>Estado en PostgreSQL:</b> <span style="background: #eab308; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold;">PENDIENTE_PAGO</span></p>
+            <p style="margin: 0.4rem 0;"><b>N.º Transacción:</b> <code>@paymentId</code></p>
+            <p style="margin: 0.4rem 0;"><b>Motivo informado por Mercado Pago:</b> <code>@statusDetail</code></p>
+            <p style="margin: 0.6rem 0 0 0; font-size: 0.9rem; color: #b91c1c; line-height: 1.4;">
+                ⚠️ <i>Tu pedido permanece en estado PENDIENTE_PAGO. No se realizó ningún cobro a tu tarjeta (comportamiento de tarjeta de prueba OTHE/FUND/SECU).</i>
+            </p>
+        </div>
+    }
+    else
+    {
+        <div class="pending-icon" style="font-size: 3rem; color: #f59e0b; text-align: center;">⏳</div>
+        <h1 style="text-align: center; color: #d97706; margin-top: 0.5rem;">Pedido Registrado (Pendiente)</h1>
+        <p style="text-align: center; font-size: 1.1rem; color: #374151;">Tu pedido <b>#@orderId</b> quedó registrado en PostgreSQL.</p>
+        
+        <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 1rem; margin: 1.5rem 0;">
+            <p style="margin: 0.4rem 0;"><b>Estado en PostgreSQL:</b> <span style="background: #f59e0b; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold;">PENDIENTE_PAGO</span></p>
+            @if (Model != null)
+            {
+                <p style="margin: 0.4rem 0;"><b>Total:</b> S/ @Model.Total.ToString("F2")</p>
+            }
+            <p style="margin: 0.6rem 0 0 0; font-size: 0.9rem; color: #92400e; line-height: 1.4;">
+                ℹ️ <i>El pedido queda en espera hasta completar el pago en la pasarela.</i>
+            </p>
+        </div>
+    }
+
+    <div style="margin-top: 1.5rem; text-align: center;">
+        <a class="btn-cart inline" asp-controller="Home" asp-action="Index" style="display: inline-block; padding: 0.6rem 1.4rem; background: #0284c7; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">Seguir comprando</a>
+    </div>
 </div>

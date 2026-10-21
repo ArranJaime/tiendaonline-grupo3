@@ -195,6 +195,14 @@ Resources:
       Name: !Sub '${AWS::StackName}/rds-postgres'
       Description: Credenciales de RDS PostgreSQL de URPOnline (las lee la app con el AWS SDK)
       SecretString: !Sub '{"username":"urponline","password":"${DBPassword}"}'
+  # AWS Secrets Manager: guarda el Access Token de prueba de Mercado Pago (Indicador 3c).
+  # Creado por la plantilla sin el valor real; la app lo lee con el AWS SDK (GetSecretValue).
+  MercadoPagoSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub '${AWS::StackName}/mercadopago-token'
+      Description: Token de prueba de Mercado Pago para URPOnline (se configura en Secrets Manager tras el despliegue)
+      SecretString: '{"access_token":"TEST-PLACEHOLDER"}'
   RedisSubnet:
     Type: AWS::ElastiCache::SubnetGroup
     Properties: {Description: URPOnline data subnets,SubnetIds: [!Ref DataA,!Ref DataB]}
@@ -232,7 +240,9 @@ Resources:
                 Resource: !Sub 'arn:${AWS::Partition}:s3:::${ArtifactBucket}/${ArtifactKey}'
               - Effect: Allow
                 Action: ['secretsmanager:GetSecretValue']
-                Resource: !Ref DbSecret
+                Resource:
+                  - !Ref DbSecret
+                  - !Ref MercadoPagoSecret
   # VPC Flow Logs: registra el tráfico aceptado y rechazado de toda la VPC en CloudWatch Logs.
   FlowLogGroup:
     Type: AWS::Logs::LogGroup
@@ -337,6 +347,8 @@ Resources:
             ConnectionStrings__Postgres=Host=${Postgres.Endpoint.Address};Port=5432;Database=urponline;Username=urponline;SSL Mode=Require;Trust Server Certificate=true
             # Sin contraseña: la app la pide a Secrets Manager con el AWS SDK.
             Database__SecretArn=${DbSecret}
+            # Token de prueba de Mercado Pago desde Secrets Manager con el AWS SDK
+            Payment__SecretArn=${MercadoPagoSecret}
             ConnectionStrings__Redis=${Redis.PrimaryEndPoint.Address}:6379,ssl=true,abortConnect=false
             # Aplica las migraciones EF Core (tablas + pgvector + índice HNSW) al arrancar; un bloqueo en PostgreSQL evita que 2 EC2 migren a la vez.
             InitializeDatabase=true
@@ -455,6 +467,38 @@ Resources:
       Threshold: 5
       ComparisonOperator: GreaterThanThreshold
       TreatMissingData: notBreaching
+  # Alarma de carritos abandonados (Indicador 3b): se activa si hay carritos activos y 0 compras durante 15 min.
+  AbandonedCartsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${AWS::StackName}-carritos-abandonados'
+      AlarmDescription: Alarma de carritos abandonados (carritos activos y 0 compras durante 15 minutos)
+      EvaluationPeriods: 3
+      DatapointsToAlarm: 3
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      Metrics:
+        - Id: m1
+          MetricStat:
+            Metric:
+              Namespace: URPOnline
+              MetricName: ActiveCarts
+            Period: 300
+            Stat: Maximum
+          ReturnData: false
+        - Id: m2
+          MetricStat:
+            Metric:
+              Namespace: URPOnline
+              MetricName: OrdersCreated
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+        - Id: e1
+          Expression: "IF(FILL(m1,0) >= 1 AND FILL(m2,0) == 0, FILL(m1,0), 0)"
+          Label: "Carritos abandonados sin compras"
+          ReturnData: true
   # Telemetría en UNA sola pantalla: CloudWatch -> Dashboards -> URPOnline-<pila> (link en Outputs).
   Dashboard:
     Type: AWS::CloudWatch::Dashboard
@@ -466,19 +510,20 @@ Resources:
           "periodOverride": "inherit",
           "widgets": [
             {"type":"text","x":0,"y":0,"width":24,"height":2,"properties":{"markdown":"# URPOnline en AWS: telemetría de todos los servicios\nTienda (HTTPS): https://${CDN.DomainName}  |  Navega, busca y compra: en 1-2 min suben las gráficas. Termina una EC2 en la consola y mira cómo Auto Scaling la reemplaza."}},
-            {"type":"alarm","x":0,"y":2,"width":24,"height":2,"properties":{"title":"Alarmas","alarms":["${UnhealthyHostsAlarm.Arn}","${Errors5xxAlarm.Arn}"]}},
+            {"type":"alarm","x":0,"y":2,"width":24,"height":2,"properties":{"title":"Alarmas","alarms":["${UnhealthyHostsAlarm.Arn}","${Errors5xxAlarm.Arn}","${AbandonedCartsAlarm.Arn}"]}},
             {"type":"metric","x":0,"y":4,"width":8,"height":6,"properties":{"title":"ALB: peticiones y errores 5xx","region":"${AWS::Region}","stat":"Sum","period":60,"view":"timeSeries","metrics":[["AWS/ApplicationELB","RequestCount","LoadBalancer","${ALB.LoadBalancerFullName}",{"label":"Peticiones"}],[".","HTTPCode_Target_5XX_Count",".",".",{"label":"Errores 5xx","color":"#d62728"}]]}},
             {"type":"metric","x":8,"y":4,"width":8,"height":6,"properties":{"title":"ALB: EC2 sanas detrás del balanceador","region":"${AWS::Region}","stat":"Maximum","period":60,"view":"timeSeries","metrics":[["AWS/ApplicationELB","HealthyHostCount","TargetGroup","${TG.TargetGroupFullName}","LoadBalancer","${ALB.LoadBalancerFullName}",{"label":"Sanas","color":"#2ca02c"}],[".","UnHealthyHostCount",".",".",".",".",{"label":"No sanas","color":"#d62728"}]],"yAxis":{"left":{"min":0}}}},
             {"type":"metric","x":16,"y":4,"width":8,"height":6,"properties":{"title":"ALB: tiempo de respuesta (s)","region":"${AWS::Region}","stat":"Average","period":60,"view":"timeSeries","metrics":[["AWS/ApplicationELB","TargetResponseTime","LoadBalancer","${ALB.LoadBalancerFullName}",{"label":"Promedio"}],["...",{"stat":"p95","label":"p95"}]]}},
             {"type":"metric","x":0,"y":10,"width":8,"height":6,"properties":{"title":"EC2 (Auto Scaling): CPU % y memoria %","region":"${AWS::Region}","period":60,"view":"timeSeries","metrics":[["AWS/EC2","CPUUtilization","AutoScalingGroupName","${Scaling}",{"stat":"Average","label":"CPU %"}],["URPOnline/EC2","mem_used_percent","AutoScalingGroupName","${Scaling}",{"stat":"Average","label":"Memoria %"}]],"yAxis":{"left":{"min":0,"max":100}}}},
             {"type":"metric","x":8,"y":10,"width":8,"height":6,"properties":{"title":"RDS PostgreSQL: conexiones y CPU %","region":"${AWS::Region}","period":60,"view":"timeSeries","metrics":[["AWS/RDS","DatabaseConnections","DBInstanceIdentifier","${Postgres}",{"stat":"Maximum","label":"Conexiones"}],[".","CPUUtilization",".",".",{"stat":"Average","label":"CPU %","yAxis":"right"}]]}},
             {"type":"metric","x":16,"y":10,"width":8,"height":6,"properties":{"title":"ElastiCache Redis (sesiones): conexiones y memoria %","region":"${AWS::Region}","period":60,"view":"timeSeries","metrics":[[{"expression":"SEARCH('{AWS/ElastiCache,CacheClusterId} MetricName=\"CurrConnections\" ${Redis}', 'Maximum', 60)","id":"conn","label":"Conexiones"}],[{"expression":"SEARCH('{AWS/ElastiCache,CacheClusterId} MetricName=\"DatabaseMemoryUsagePercentage\" ${Redis}', 'Average', 60)","id":"mem","label":"Memoria %","yAxis":"right"}]]}},
-            {"type":"metric","x":0,"y":16,"width":8,"height":6,"properties":{"title":"Tienda (AWS SDK): pedidos y ventas S/","region":"${AWS::Region}","stat":"Sum","period":300,"view":"timeSeries","metrics":[["URPOnline","OrdersCreated",{"label":"Pedidos"}],[".","OrderAmount",{"label":"Ventas S/","yAxis":"right"}]]}},
-            {"type":"metric","x":8,"y":16,"width":8,"height":6,"properties":{"title":"CloudFront (HTTPS): peticiones y % de errores","region":"us-east-1","period":300,"view":"timeSeries","metrics":[["AWS/CloudFront","Requests","Region","Global","DistributionId","${CDN}",{"stat":"Sum","label":"Peticiones"}],[".","5xxErrorRate",".",".",".",".",{"stat":"Average","label":"% 5xx","yAxis":"right"}]]}},
-            {"type":"metric","x":16,"y":16,"width":8,"height":6,"properties":{"title":"EC2: disco usado %","region":"${AWS::Region}","stat":"Average","period":300,"view":"timeSeries","metrics":[["URPOnline/EC2","disk_used_percent","AutoScalingGroupName","${Scaling}",{"label":"Disco %"}]],"yAxis":{"left":{"min":0,"max":100}}}},
-            {"type":"log","x":0,"y":22,"width":24,"height":7,"properties":{"title":"Logs de la tienda (cada logStream = una EC2)","region":"${AWS::Region}","view":"table","query":"SOURCE '${AppLogGroup}' | fields @timestamp, @logStream as EC2, @message | sort @timestamp desc | limit 50"}},
-            {"type":"log","x":0,"y":35,"width":24,"height":6,"properties":{"title":"VPC Flow Logs: tráfico RECHAZADO por security groups / NACL (intentos bloqueados)","region":"${AWS::Region}","view":"table","query":"SOURCE '${FlowLogGroup}' | filter action = 'REJECT' | stats count(*) as intentos by srcAddr, dstAddr, dstPort | sort intentos desc | limit 20"}},
-            {"type":"log","x":0,"y":29,"width":24,"height":6,"properties":{"title":"Nginx: peticiones por EC2 (el ALB reparte)","region":"${AWS::Region}","view":"bar","query":"SOURCE '${NginxLogGroup}' | stats count(*) as peticiones by @logStream as EC2"}}
+            {"type":"metric","x":0,"y":16,"width":12,"height":6,"properties":{"title":"Conversión: Carritos Activos vs Compras (OrdersCreated)","region":"${AWS::Region}","view":"timeSeries","metrics":[["URPOnline","ActiveCarts",{"label":"Carritos Activos","stat":"Maximum","period":300,"color":"#1f77b4"}],[".","OrdersCreated",{"label":"Compras Confirmadas","stat":"Sum","period":300,"color":"#2ca02c"}],[".","CartItemsAdded",{"label":"Items Agregados","stat":"Sum","period":300,"color":"#ff7f0e"}]]}},
+            {"type":"metric","x":12,"y":16,"width":12,"height":6,"properties":{"title":"Tienda (AWS SDK): pedidos y ventas S/","region":"${AWS::Region}","stat":"Sum","period":300,"view":"timeSeries","metrics":[["URPOnline","OrdersCreated",{"label":"Pedidos"}],[".","OrderAmount",{"label":"Ventas S/","yAxis":"right"}]]}},
+            {"type":"metric","x":0,"y":22,"width":12,"height":6,"properties":{"title":"CloudFront (HTTPS): peticiones y % de errores","region":"us-east-1","period":300,"view":"timeSeries","metrics":[["AWS/CloudFront","Requests","Region","Global","DistributionId","${CDN}",{"stat":"Sum","label":"Peticiones"}],[".","5xxErrorRate",".",".",".",".",{"stat":"Average","label":"% 5xx","yAxis":"right"}]]}},
+            {"type":"metric","x":12,"y":22,"width":12,"height":6,"properties":{"title":"EC2: disco usado %","region":"${AWS::Region}","stat":"Average","period":300,"view":"timeSeries","metrics":[["URPOnline/EC2","disk_used_percent","AutoScalingGroupName","${Scaling}",{"label":"Disco %"}]],"yAxis":{"left":{"min":0,"max":100}}}},
+            {"type":"log","x":0,"y":28,"width":24,"height":7,"properties":{"title":"Logs de la tienda (cada logStream = una EC2)","region":"${AWS::Region}","view":"table","query":"SOURCE '${AppLogGroup}' | fields @timestamp, @logStream as EC2, @message | sort @timestamp desc | limit 50"}},
+            {"type":"log","x":0,"y":35,"width":24,"height":6,"properties":{"title":"Nginx: peticiones por EC2 (el ALB reparte)","region":"${AWS::Region}","view":"bar","query":"SOURCE '${NginxLogGroup}' | stats count(*) as peticiones by @logStream as EC2"}},
+            {"type":"log","x":0,"y":41,"width":24,"height":6,"properties":{"title":"VPC Flow Logs: tráfico RECHAZADO por security groups / NACL (intentos bloqueados)","region":"${AWS::Region}","view":"table","query":"SOURCE '${FlowLogGroup}' | filter action = 'REJECT' | stats count(*) as intentos by srcAddr, dstAddr, dstPort | sort intentos desc | limit 20"}}
           ]
         }
 Outputs:
@@ -494,3 +539,4 @@ Outputs:
   S3EndpointId: {Description: VPC endpoint de S3 (Gateway), Value: !Ref S3Endpoint}
   DataNaclId: {Description: NACL de la subred de datos, Value: !Ref DataNacl}
   TargetGroupArn: {Value: !Ref TG}
+  MercadoPagoSecretArn: {Description: Secreto de Mercado Pago en Secrets Manager (AWS SDK), Value: !Ref MercadoPagoSecret}
