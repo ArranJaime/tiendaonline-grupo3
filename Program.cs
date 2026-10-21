@@ -43,16 +43,24 @@ app.UseStaticFiles();app.UseRouting();app.UseSession();
 app.MapGet("/health",()=>Results.Ok(new{status="ok"}));
 app.MapControllerRoute("default","{controller=Home}/{action=Index}/{id?}");
 if(app.Configuration.GetValue<bool>("InitializeDatabase")){
- using var scope=app.Services.CreateScope();var database=scope.ServiceProvider.GetRequiredService<ShopDbContext>();
- // Migraciones EF Core versionadas (Data/Migrations): tablas + pgvector + índice HNSW. Luego datos de ejemplo.
- // pg_advisory_lock: si varias EC2 arrancan a la vez, solo una migra; las demás esperan y encuentran todo aplicado.
- await database.Database.OpenConnectionAsync();
+ using var scope=app.Services.CreateScope();
+ // Migraciones EF Core versionadas: Si existe ConnectionStrings:PostgresDirect (puerto 5432 directo a RDS), usarlo para evitar
+ // que pg_advisory_lock falle a través de PgBouncer en modo transaction (Indicador 2a).
+ var directConn = app.Configuration.GetConnectionString("PostgresDirect");
+ var migDb = string.IsNullOrWhiteSpace(directConn)
+     ? scope.ServiceProvider.GetRequiredService<ShopDbContext>()
+     : new ShopDbContext(new DbContextOptionsBuilder<ShopDbContext>()
+         .UseNpgsql(DatabaseSecret.BuildConnectionString(app.Configuration, directConn))
+         .Options);
+
+ await migDb.Database.OpenConnectionAsync();
  try {
-  await database.Database.ExecuteSqlRawAsync("SELECT pg_advisory_lock(727001)");
-  await database.Database.MigrateAsync();await SeedData.LoadAsync(database);
+  await migDb.Database.ExecuteSqlRawAsync("SELECT pg_advisory_lock(727001)");
+  await migDb.Database.MigrateAsync();await SeedData.LoadAsync(migDb);
  } finally {
-  await database.Database.ExecuteSqlRawAsync("SELECT pg_advisory_unlock(727001)");
-  await database.Database.CloseConnectionAsync();
+  await migDb.Database.ExecuteSqlRawAsync("SELECT pg_advisory_unlock(727001)");
+  await migDb.Database.CloseConnectionAsync();
+  if(!string.IsNullOrWhiteSpace(directConn)) await migDb.DisposeAsync();
  }
 }
 app.Run();
