@@ -2,7 +2,7 @@
 **Proyecto:** URPOnline · TiendaOnline (.NET 8 + AWS)  
 **Repositorio del Grupo:** `https://github.com/Jesussv2/tiendaonline-grupo3`
 
-Esta guía contiene la **lista definitiva y verificada** de todo lo que cada integrante del grupo debe tener instalado para trabajar con el código, levantar la tienda en local, probar el catálogo, correr las pruebas de carga (k6) y conectarse a AWS.
+Esta guía contiene la **lista definitiva y el orden cronológico exacto** que cada integrante del grupo debe seguir para clonar el repositorio, configurar sus herramientas en VS Code, levantar la tienda en local y ejecutar las pruebas.
 
 ---
 
@@ -11,19 +11,33 @@ Esta guía contiene la **lista definitiva y verificada** de todo lo que cada int
 | # | Herramienta | Para qué sirve | Comando de Verificación |
 |:---:|---|---|---|
 | **1** | **Git** | Clonar el repositorio y sincronizar cambios | `git --version` |
-| **2** | **.NET 8 SDK** | Compilar y ejecutar la app web y el Worker | `dotnet --version` (debe ser `8.x`) |
-| **3** | **dotnet-ef (EF Core CLI)** | Administrar migraciones de base de datos | `dotnet ef --version` |
-| **4** | **Docker Desktop** | Levantar PostgreSQL 16 (`pgvector`) y Redis 7 | `docker --version` |
-| **5** | **AWS CLI v2** | Gestionar CloudFormation, S3 y Secrets Manager | `aws --version` |
-| **6** | **Session Manager Plugin** | Conectarse por terminal a las EC2 privadas sin SSH | `session-manager-plugin` |
-| **7** | **k6 (Grafana)** | Ejecutar pruebas de carga y carritos abandonados | `k6 version` |
-| **8** | **Python 3 + cfn-lint** | Validar la plantilla de CloudFormation antes de desplegar | `cfn-lint --version` |
-| **9** | **Visual Studio Code** | Editor de código recomendado con extensiones C# y AWS | `code --version` |
-| **10** | **Modelo ONNX MiniLM** | Inteligencia artificial para búsqueda semántica vectorial | Existe `ml-models/.../model.onnx` |
+| **2** | **Visual Studio Code** | Editor de código principal para trabajar el proyecto | `code --version` |
+| **3** | **Extensiones VS Code** | Soporte de C# .NET 8, AWS Toolkit, YAML y base de datos | Ver Paso 2 |
+| **4** | **.NET 8 SDK** | Compilar y ejecutar la app web y el Worker | `dotnet --version` (debe ser `8.x`) |
+| **5** | **dotnet-ef (EF Core CLI)** | Administrar migraciones y esquema de base de datos | `dotnet ef --version` |
+| **6** | **Docker Desktop** | Levantar PostgreSQL 16 (`pgvector`) y Redis 7 | `docker --version` |
+| **7** | **AWS CLI v2** | Gestionar CloudFormation, S3 y Secrets Manager | `aws --version` |
+| **8** | **Session Manager Plugin** | Conectarse por terminal a las EC2 privadas sin SSH | `session-manager-plugin` |
+| **9** | **k6 (Grafana)** | Ejecutar pruebas de carga y carritos abandonados | `k6 version` |
+| **10** | **Python 3 + cfn-lint** | Validar la plantilla de CloudFormation antes de desplegar | `cfn-lint --version` |
+| **11** | **Modelo ONNX MiniLM** | Inteligencia artificial para búsqueda semántica vectorial | Existe `ml-models/.../model.onnx` |
 
 ---
 
-## PASO 0: Acceso al Repositorio en GitHub
+## ÍNDICE PASO A PASO
+1. [Paso 0: Acceso y Clonación del Repositorio](#paso-0-acceso-y-clonación-del-repositorio)
+2. [Paso 1: Instalación de Todo el Software (Windows)](#paso-1-instalación-de-todo-el-software-windows)
+3. [Paso 2: Abrir VS Code e Instalar las Extensiones Oficiales](#paso-2-abrir-vs-code-e-instalar-las-extensiones-oficiales)
+4. [Paso 3: Iniciar Docker (PostgreSQL con pgvector + Redis)](#paso-3-iniciar-docker-postgresql-con-pgvector--redis)
+5. [Paso 4: Descargar el Modelo de Búsqueda Semántica](#paso-4-descargar-el-modelo-de-búsqueda-semántica)
+6. [Paso 5: Compilar y Ejecutar la Tienda por Primera Vez](#paso-5-compilar-y-ejecutar-la-tienda-por-primera-vez)
+7. [Paso 6: Probar el Worker Nocturno de Catálogo](#paso-6-probar-el-worker-nocturno-de-catálogo)
+8. [Paso 7: Pruebas de Rendimiento (k6)](#paso-7-pruebas-de-rendimiento-k6)
+9. [Solución de Problemas Comunes (Cheat Sheet)](#solución-de-problemas-comunes-cheat-sheet)
+
+---
+
+## PASO 0: Acceso y Clonación del Repositorio
 
 1. **Acepta la invitación:** Jesús debe haberte agregado como colaborador en GitHub (`Settings` $\rightarrow$ `Collaborators`). Revisa tu correo o entra a [https://github.com/Jesussv2/tiendaonline-grupo3](https://github.com/Jesussv2/tiendaonline-grupo3) y acepta la invitación.
 2. Abre **PowerShell** en tu computadora y clona el proyecto:
@@ -53,7 +67,7 @@ pip install cfn-lint
 > 2. Si Docker Desktop solicita reiniciar la PC o habilitar WSL 2, **reinicia tu computadora**.
 
 ### Verificación rápida:
-Ejecuta estos comandos para asegurarte de que todo responde:
+Ejecuta estos comandos para comprobar que todo quedó listo:
 ```powershell
 git --version
 dotnet --version
@@ -62,12 +76,50 @@ aws --version
 session-manager-plugin
 k6 version
 cfn-lint --version
+code --version
 ```
-*(Todos deben responder mostrando su número de versión sin errores).*
+*(Todos deben responder mostrando su versión sin errores).*
 
 ---
 
-## PASO 2: Iniciar Docker (PostgreSQL con pgvector + Redis)
+## PASO 2: Abrir VS Code e Instalar las Extensiones Oficiales
+
+Es fundamental instalar las extensiones **antes de empezar a trabajar** para contar con soporte completo de C#, AWS, sintaxis YAML de CloudFormation y visor de bases de datos.
+
+### Opción A (Recomendada con 1 clic en VS Code):
+Desde la carpeta del repositorio en PowerShell, abre el proyecto:
+```powershell
+code .
+```
+Aparecerá una notificación en la esquina inferior derecha: **"Este repositorio recomienda extensiones para este proyecto"**. Haz clic en **Instalar todas** (*Install All*).
+
+### Opción B (Comando directo en PowerShell):
+Si prefieres instalarlas desde terminal en un solo paso:
+```powershell
+code --install-extension ms-dotnettools.csdevkit `
+     --install-extension ms-dotnettools.csharp `
+     --install-extension amazonwebservices.aws-toolkit-vscode `
+     --install-extension redhat.vscode-yaml `
+     --install-extension kddejong.vscode-cfn-lint `
+     --install-extension mtxr.sqltools `
+     --install-extension mtxr.sqltools-driver-pg `
+     --install-extension github.vscode-github-actions
+```
+
+### ¿Para qué sirve cada extensión en el proyecto?
+
+| Extensión | Identificador | Utilidad en el Proyecto |
+|---|---|---|
+| **C# Dev Kit** + **C#** | `ms-dotnettools.csdevkit` | Autocompletado IntelliSense, depuración F5, compilación y solución de errores en C# .NET 8. |
+| **AWS Toolkit** | `amazonwebservices.aws-toolkit-vscode` | Explorar CloudWatch Logs, buckets S3, CloudFormation y EC2 directamente en el panel lateral. |
+| **YAML** (Red Hat) | `redhat.vscode-yaml` | Resaltado y validación de sintaxis de CloudFormation (`!Ref`, `!Sub`, `!GetAtt`). |
+| **CloudFormation Linter** | `kddejong.vscode-cfn-lint` | Resalta en rojo en el editor cualquier error de sintaxis en `infra/urponline-oneclick.yaml`. |
+| **SQLTools + PostgreSQL** | `mtxr.sqltools` + `mtxr.sqltools-driver-pg` | Conectarse y ver las tablas (`Products`, `Orders`, `ProductEmbeddings`) de PostgreSQL sin salir de VS Code. |
+| **GitHub Actions** | `github.vscode-github-actions` | Monitorear el progreso de los workflows `deploy-aws.yml` y `destroy-aws.yml` desde el editor. |
+
+---
+
+## PASO 3: Iniciar Docker (PostgreSQL con pgvector + Redis)
 
 La tienda requiere dos servicios de datos que corren en Docker:
 - **PostgreSQL 16 con extensión `pgvector`:** Almacena los 44 productos, pedidos y vectores de búsqueda.
@@ -97,7 +149,7 @@ docker ps
 
 ---
 
-## PASO 3: Descargar el Modelo de Búsqueda Semántica
+## PASO 4: Descargar el Modelo de Búsqueda Semántica
 
 La búsqueda de la tienda utiliza inteligencia artificial local (modelo ONNX de HuggingFace) para encontrar productos por significado conceptual (búsqueda por vectores con similitud coseno). 
 
@@ -114,7 +166,7 @@ Debe finalizar diciendo:
 
 ---
 
-## PASO 4: Compilar y Ejecutar la Tienda por Primera Vez
+## PASO 5: Compilar y Ejecutar la Tienda por Primera Vez
 
 La primera vez que ejecutas el proyecto, debes restaurar las herramientas locales (`dotnet-ef`), aplicar las migraciones a PostgreSQL y cargar los **44 productos del catálogo** con sus vectores:
 
@@ -148,7 +200,7 @@ dotnet run --urls http://localhost:8080
 
 ---
 
-## PASO 5: Probar el Worker Nocturno de Catálogo
+## PASO 6: Probar el Worker Nocturno de Catálogo
 
 El proyecto incluye un Worker en consola que simula la importación nocturna de productos desde CSV:
 
@@ -159,7 +211,7 @@ Verás en consola cómo valida el formato, actualiza el stock y los precios en P
 
 ---
 
-## PASO 6: Probar las Pruebas de Rendimiento (k6)
+## PASO 7: Pruebas de Rendimiento (k6)
 
 Gracias a que instalaste `k6`, puedes ejecutar las pruebas directamente desde tu computadora contra la tienda desplegada en AWS:
 
@@ -170,44 +222,6 @@ k6 run -e URL=https://d2hzwwqzi26wgr.cloudfront.net pruebas/carga.js
 # Prueba de 30 carritos abandonados (para activar la alarma):
 k6 run -e TARGET_URL=https://d2hzwwqzi26wgr.cloudfront.net pruebas/carritos-abandonados.js
 ```
-
----
-
-## PASO 7: Extensiones de VS Code Oficiales
-
-El repositorio ya tiene configuradas las extensiones recomendadas en `.vscode/extensions.json`.
-
-### Opción A (Automática desde la ventana de VS Code):
-Abre la carpeta del proyecto en VS Code:
-```powershell
-code .
-```
-Aparecerá una notificación en la esquina inferior derecha: **"Este repositorio recomienda extensiones para este proyecto"**. Haz clic en **Instalar todas** (*Install All*).
-
-### Opción B (Comando directo en PowerShell):
-Si prefieres instalarlas todas de una sola vez desde PowerShell, copia y pega este comando:
-
-```powershell
-code --install-extension ms-dotnettools.csdevkit `
-     --install-extension ms-dotnettools.csharp `
-     --install-extension amazonwebservices.aws-toolkit-vscode `
-     --install-extension redhat.vscode-yaml `
-     --install-extension kddejong.vscode-cfn-lint `
-     --install-extension mtxr.sqltools `
-     --install-extension mtxr.sqltools-driver-pg `
-     --install-extension github.vscode-github-actions
-```
-
-### ¿Para qué sirve cada extensión en el proyecto?
-
-| Extensión | Nombre | Utilidad en el Proyecto |
-|---|---|---|
-| **C# Dev Kit** + **C#** | `ms-dotnettools.csdevkit` | Autocompletado IntelliSense, depuración F5, compilación y solución de errores en C# .NET 8. |
-| **AWS Toolkit** | `amazonwebservices.aws-toolkit-vscode` | Explorar CloudWatch Logs, buckets S3, CloudFormation y recursos de AWS directamente en el panel lateral. |
-| **YAML** (Red Hat) | `redhat.vscode-yaml` | Resaltado y validación de sintaxis de CloudFormation (`!Ref`, `!Sub`, `!GetAtt` configurados en `.vscode/settings.json`). |
-| **CloudFormation Linter** | `kddejong.vscode-cfn-lint` | Resalta en rojo en el editor cualquier error de sintaxis o política en `infra/urponline-oneclick.yaml`. |
-| **SQLTools + PostgreSQL Driver** | `mtxr.sqltools` + `mtxr.sqltools-driver-pg` | Conectarse y ver las tablas (`Products`, `Orders`, `ProductEmbeddings`) de la base de datos `urp-postgres` sin salir de VS Code. |
-| **GitHub Actions** | `github.vscode-github-actions` | Monitorear el progreso y estado de los workflows `deploy-aws.yml` y `destroy-aws.yml` desde el editor. |
 
 ---
 
