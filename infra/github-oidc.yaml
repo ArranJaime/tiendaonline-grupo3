@@ -2,14 +2,15 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: >
   URPOnline - Conexión segura GitHub Actions -> AWS sin Access Keys (OIDC).
   Crea el proveedor de identidad de GitHub y un rol IAM que SOLO puede asumir
-  la rama main de tu repositorio. Se despliega UNA vez por cuenta de AWS.
+  tu repositorio. Se despliega UNA vez por cuenta de AWS.
 Parameters:
   GitHubOwner:
     Type: String
+    Default: 'ArranJaime'
     Description: Tu usuario u organización de GitHub (el dueño de TU fork)
   RepoName:
     Type: String
-    Default: tiendaonline
+    Default: tiendaonline-grupo3
     Description: Nombre de tu repositorio en GitHub
   CreateOidcProvider:
     Type: String
@@ -25,7 +26,9 @@ Resources:
     Properties:
       Url: https://token.actions.githubusercontent.com
       ClientIdList: [sts.amazonaws.com]
-      ThumbprintList: [6938fd4d98bab03faadb97b34396831e3780aea1]
+      ThumbprintList:
+        - 6938fd4d98bab03faadb97b34396831e3780aea1
+        - 1c58a3a8518e8759bf075b76b750d4f2df264fcd
   DeployRole:
     Type: AWS::IAM::Role
     Properties:
@@ -41,7 +44,10 @@ Resources:
               StringEquals:
                 'token.actions.githubusercontent.com:aud': sts.amazonaws.com
               StringLike:
-                'token.actions.githubusercontent.com:sub': !Sub 'repo:${GitHubOwner}/${RepoName}:ref:refs/heads/main'
+                'token.actions.githubusercontent.com:sub':
+                  - !Sub 'repo:${GitHubOwner}/${RepoName}:*'
+                  - 'repo:ArranJaime/tiendaonline-grupo3:*'
+                  - 'repo:Jesussv2/tiendaonline-grupo3:*'
       # Laboratorio: la pila crea VPC, EC2, RDS, ElastiCache, IAM, S3... por eso AdministratorAccess.
       # Mejora para producción: reemplazar por una política de mínimo privilegio.
       ManagedPolicyArns: [!Sub 'arn:${AWS::Partition}:iam::aws:policy/AdministratorAccess']
