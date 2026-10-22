@@ -45,9 +45,9 @@ Resources:
                 'token.actions.githubusercontent.com:aud': sts.amazonaws.com
               StringLike:
                 'token.actions.githubusercontent.com:sub':
-                  - !Sub 'repo:${GitHubOwner}/${RepoName}:*'
-                  - 'repo:ArranJaime/tiendaonline-grupo3:*'
-                  - 'repo:Jesussv2/tiendaonline-grupo3:*'
+                  - 'repo:ArranJaime*/tiendaonline-grupo3*:*'
+                  - 'repo:Jesussv2*/tiendaonline-grupo3*:*'
+                  - 'repo:*tiendaonline-grupo3*:*'
       # Laboratorio: la pila crea VPC, EC2, RDS, ElastiCache, IAM, S3... por eso AdministratorAccess.
       # Mejora para producción: reemplazar por una política de mínimo privilegio.
       ManagedPolicyArns: [!Sub 'arn:${AWS::Partition}:iam::aws:policy/AdministratorAccess']
