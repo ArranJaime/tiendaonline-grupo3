@@ -6,3 +6,5 @@ publish/
 .env
 appsettings.Production.json
 ml-models/
+out/
+*.zip

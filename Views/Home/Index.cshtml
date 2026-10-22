@@ -1,89 +1,89 @@
 @model StorePageViewModel
 @{
- // Arma la URL de resultados conservando los filtros actuales y cambiando solo los indicados.
- string Link(string? category = "__keep", decimal? min = null, decimal? max = null, bool? stock = null, string? sort = null, bool clearPrice = false) {
-  var values = new Dictionary<string, string?> {
-   ["q"] = Model.Query,
-   ["category"] = category == "__keep" ? Model.Category : category,
-   ["min"] = clearPrice ? null : (min ?? Model.Min)?.ToString(System.Globalization.CultureInfo.InvariantCulture),
-   ["max"] = clearPrice ? null : (max ?? Model.Max)?.ToString(System.Globalization.CultureInfo.InvariantCulture),
-   ["stock"] = (stock ?? Model.InStockOnly) ? "true" : null,
-   ["sort"] = (sort ?? Model.Sort) == "relevancia" ? null : (sort ?? Model.Sort)
-  };
-  return Url.Action("Index", "Home", values.Where(v => !string.IsNullOrEmpty(v.Value)).ToDictionary(v => v.Key, v => (object?)v.Value))!;
- }
+	// Arma la URL de resultados conservando los filtros actuales y cambiando solo los indicados.
+	string Link(string? category = "__keep", decimal? min = null, decimal? max = null, bool? stock = null, string? sort = null, bool clearPrice = false) {
+		var values = new Dictionary<string, string?> {
+			["q"] = Model.Query,
+			["category"] = category == "__keep" ? Model.Category : category,
+			["min"] = clearPrice ? null : (min ?? Model.Min)?.ToString(System.Globalization.CultureInfo.InvariantCulture),
+			["max"] = clearPrice ? null : (max ?? Model.Max)?.ToString(System.Globalization.CultureInfo.InvariantCulture),
+			["stock"] = (stock ?? Model.InStockOnly) ? "true" : null,
+			["sort"] = (sort ?? Model.Sort) == "relevancia" ? null : (sort ?? Model.Sort)
+		};
+		return Url.Action("Index", "Home", values.Where(v => !string.IsNullOrEmpty(v.Value)).ToDictionary(v => v.Key, v => (object?)v.Value))!;
+	}
 }
 @if(!Model.IsSearch){
 <section class="hero">
- <div><h1>Tecnología y accesorios<br/>para tu día a día</h1><p>Explora el catálogo de URPOnline y arma tu carrito en minutos.</p></div>
- <div class="hero-art">🛍️</div>
+	<div><h1>Cyber URPOnline 2026<br/>Tecnología e Innovación en AWS</h1><p>Despliegue continuo con GitHub Actions y Auto Scaling multi-AZ.</p></div>
+	<div class="hero-art">🚀</div>
 </section>
 <section class="tiles">
- @foreach(var tile in Model.CategoryTiles){
-  <div class="tile">
-   <h2>@tile.Category</h2>
-   <div class="tile-grid">
-    @foreach(var p in tile.Products){
-     <a class="tile-item" asp-action="Index" asp-route-q="@p.Name"><span class="tile-art">@p.Emoji</span><span class="tile-name">@p.Name</span></a>
-    }
-   </div>
-   <a class="tile-more" asp-action="Index" asp-route-category="@tile.Category">Ver más en @tile.Category</a>
-  </div>
- }
+	@foreach(var tile in Model.CategoryTiles){
+		<div class="tile">
+			<h2>@tile.Category</h2>
+			<div class="tile-grid">
+				@foreach(var p in tile.Products){
+					<a class="tile-item" asp-action="Index" asp-route-q="@p.Name"><span class="tile-art">@p.Emoji</span><span class="tile-name">@p.Name</span></a>
+				}
+			</div>
+			<a class="tile-more" asp-action="Index" asp-route-category="@tile.Category">Ver más en @tile.Category</a>
+		</div>
+	}
 </section>
 <section class="results">
- <div class="results-head"><h2>Productos destacados</h2><span>@Model.Results.Count productos</span></div>
- <div class="products">@foreach(var product in Model.Results){<partial name="_ProductCard" model="product"/>}</div>
+	<div class="results-head"><h2>Productos destacados</h2><span>@Model.Results.Count productos</span></div>
+	<div class="products">@foreach(var product in Model.Results){<partial name="_ProductCard" model="product"/>}</div>
 </section>
 }else{
 <div class="result-bar">
- <p>@if(Model.Results.Count>0){<text>1 a @Model.Results.Count de @Model.Results.Count resultados</text>}else{<text>0 resultados</text>}
-  @if(!string.IsNullOrWhiteSpace(Model.Query)){<text> para <b>"@Model.Query"</b></text>}
-  @if(!string.IsNullOrWhiteSpace(Model.Category)){<text> en <b>@Model.Category</b></text>}</p>
- <form method="get" asp-action="Index" class="sort-form">
-  <input type="hidden" name="q" value="@Model.Query"/><input type="hidden" name="category" value="@Model.Category"/>
-  @if(Model.Min.HasValue){<input type="hidden" name="min" value="@Model.Min.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)"/>}
-  @if(Model.Max.HasValue){<input type="hidden" name="max" value="@Model.Max.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)"/>}
-  @if(Model.InStockOnly){<input type="hidden" name="stock" value="true"/>}
-  <label>Ordenar por:
-   <select name="sort" onchange="this.form.submit()">
-    @foreach(var o in StorePageViewModel.SortOptions){ if(o.Value==Model.Sort){<option selected value="@o.Value">@o.Label</option>}else{<option value="@o.Value">@o.Label</option>} }
-   </select>
-  </label>
-  <noscript><button>Aplicar</button></noscript>
- </form>
+	<p>@if(Model.Results.Count>0){<text>1 a @Model.Results.Count de @Model.Results.Count resultados</text>}else{<text>0 resultados</text>}
+		@if(!string.IsNullOrWhiteSpace(Model.Query)){<text> para <b>"@Model.Query"</b></text>}
+		@if(!string.IsNullOrWhiteSpace(Model.Category)){<text> en <b>@Model.Category</b></text>}</p>
+	<form method="get" asp-action="Index" class="sort-form">
+		<input type="hidden" name="q" value="@Model.Query"/><input type="hidden" name="category" value="@Model.Category"/>
+		@if(Model.Min.HasValue){<input type="hidden" name="min" value="@Model.Min.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)"/>}
+		@if(Model.Max.HasValue){<input type="hidden" name="max" value="@Model.Max.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)"/>}
+		@if(Model.InStockOnly){<input type="hidden" name="stock" value="true"/>}
+		<label>Ordenar por:
+			<select name="sort" onchange="this.form.submit()">
+				@foreach(var o in StorePageViewModel.SortOptions){ if(o.Value==Model.Sort){<option selected value="@o.Value">@o.Label</option>}else{<option value="@o.Value">@o.Label</option>} }
+			</select>
+		</label>
+		<noscript><button>Aplicar</button></noscript>
+	</form>
 </div>
 <div class="search-layout">
- <aside class="filters-panel">
-  <h3>Categoría</h3>
-  <ul>
-   <li><a class="@(string.IsNullOrEmpty(Model.Category) ? "on" : "")" href="@Link(category: null)">Todas</a></li>
-   @foreach(var c in Model.CategoryCounts){<li><a class="@(c.Category==Model.Category ? "on" : "")" href="@Link(category: c.Category)">@c.Category <span>(@c.Count)</span></a></li>}
-  </ul>
-  <h3>Precio</h3>
-  <ul>
-   @foreach(var r in StorePageViewModel.PriceRanges){
-    var on = Model.Min==r.Min && Model.Max==r.Max;
-    <li><a class="@(on ? "on" : "")" href="@(on ? Link(clearPrice: true) : Link(min: r.Min ?? 0, max: r.Max ?? 999999))">@r.Label</a></li>
-   }
-   @if(Model.Min.HasValue || Model.Max.HasValue){<li><a class="clear" href="@Link(clearPrice: true)">‹ Cualquier precio</a></li>}
-  </ul>
-  <h3>Disponibilidad</h3>
-  <ul><li><a class="check @(Model.InStockOnly ? "on" : "")" href="@Link(stock: !Model.InStockOnly)"><span class="box">@(Model.InStockOnly ? "✓" : "")</span> Solo en stock</a></li></ul>
- </aside>
- <section class="result-list">
-  @if(Model.Results.Count>0){<h2>Resultados</h2>}
-  @foreach(var p in Model.Results){<partial name="_ResultRow" model="p"/>}
-  @if(Model.Results.Count==0 && Model.Related.Count==0){
-   <div class="empty"><h2>No encontramos productos</h2><p>Prueba con otra palabra, quita filtros o revisa la ortografía.</p><a class="btn-cart inline" asp-action="Index">Ver todo el catálogo</a></div>
-  }
-  @if(Model.Related.Count>0){
-   <h2 class="related-title">Productos relacionados <small>búsqueda semántica con pgvector</small></h2>
-   @foreach(var r in Model.Related){<partial name="_ResultRow" model="r.Product" view-data='new ViewDataDictionary(ViewData){{"Similarity",r.Similarity}}'/>}
-  }
-  @if(Model.SemanticUnavailable!=null && Context.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment()){
-   <div class="notice dev">Búsqueda semántica desactivada: @Model.SemanticUnavailable</div>
-  }
- </section>
+	<aside class="filters-panel">
+		<h3>Categoría</h3>
+		<ul>
+			<li><a class="@(string.IsNullOrEmpty(Model.Category) ? "on" : "")" href="@Link(category: null)">Todas</a></li>
+			@foreach(var c in Model.CategoryCounts){<li><a class="@(c.Category==Model.Category ? "on" : "")" href="@Link(category: c.Category)">@c.Category <span>(@c.Count)</span></a></li>}
+		</ul>
+		<h3>Precio</h3>
+		<ul>
+			@foreach(var r in StorePageViewModel.PriceRanges){
+				var on = Model.Min==r.Min && Model.Max==r.Max;
+				<li><a class="@(on ? "on" : "")" href="@(on ? Link(clearPrice: true) : Link(min: r.Min ?? 0, max: r.Max ?? 999999))">@r.Label</a></li>
+			}
+			@if(Model.Min.HasValue || Model.Max.HasValue){<li><a class="clear" href="@Link(clearPrice: true)">‹ Cualquier precio</a></li>}
+		</ul>
+		<h3>Disponibilidad</h3>
+		<ul><li><a class="check @(Model.InStockOnly ? "on" : "")" href="@Link(stock: !Model.InStockOnly)"><span class="box">@(Model.InStockOnly ? "✓" : "")</span> Solo en stock</a></li></ul>
+	</aside>
+	<section class="result-list">
+		@if(Model.Results.Count>0){<h2>Resultados</h2>}
+		@foreach(var p in Model.Results){<partial name="_ResultRow" model="p"/>}
+		@if(Model.Results.Count==0 && Model.Related.Count==0){
+			<div class="empty"><h2>No encontramos productos</h2><p>Prueba con otra palabra, quita filtros o revisa la ortografía.</p><a class="btn-cart inline" asp-action="Index">Ver todo el catálogo</a></div>
+		}
+		@if(Model.Related.Count>0){
+			<h2 class="related-title">Productos relacionados <small>búsqueda semántica con pgvector</small></h2>
+			@foreach(var r in Model.Related){<partial name="_ResultRow" model="r.Product" view-data='new ViewDataDictionary(ViewData){{"Similarity",r.Similarity}}'/>}
+		}
+		@if(Model.SemanticUnavailable!=null && Context.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment()){
+			<div class="notice dev">Búsqueda semántica desactivada: @Model.SemanticUnavailable</div>
+		}
+	</section>
 </div>
 }
