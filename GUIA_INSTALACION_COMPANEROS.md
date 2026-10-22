@@ -173,20 +173,41 @@ k6 run -e TARGET_URL=https://d2hzwwqzi26wgr.cloudfront.net pruebas/carritos-aban
 
 ---
 
-## PASO 7: Extensiones de VS Code Recomendadas
+## PASO 7: Extensiones de VS Code Oficiales
 
-Abre la carpeta en Visual Studio Code:
+El repositorio ya tiene configuradas las extensiones recomendadas en `.vscode/extensions.json`.
+
+### Opción A (Automática desde la ventana de VS Code):
+Abre la carpeta del proyecto en VS Code:
 ```powershell
 code .
 ```
+Aparecerá una notificación en la esquina inferior derecha: **"Este repositorio recomienda extensiones para este proyecto"**. Haz clic en **Instalar todas** (*Install All*).
 
-Instala las extensiones oficiales desde la terminal de VS Code:
+### Opción B (Comando directo en PowerShell):
+Si prefieres instalarlas todas de una sola vez desde PowerShell, copia y pega este comando:
+
 ```powershell
-code --install-extension ms-dotnettools.csdevkit
-code --install-extension amazonwebservices.aws-toolkit-vscode
-code --install-extension redhat.vscode-yaml
-code --install-extension kddejong.vscode-cfn-lint
+code --install-extension ms-dotnettools.csdevkit `
+     --install-extension ms-dotnettools.csharp `
+     --install-extension amazonwebservices.aws-toolkit-vscode `
+     --install-extension redhat.vscode-yaml `
+     --install-extension kddejong.vscode-cfn-lint `
+     --install-extension mtxr.sqltools `
+     --install-extension mtxr.sqltools-driver-pg `
+     --install-extension github.vscode-github-actions
 ```
+
+### ¿Para qué sirve cada extensión en el proyecto?
+
+| Extensión | Nombre | Utilidad en el Proyecto |
+|---|---|---|
+| **C# Dev Kit** + **C#** | `ms-dotnettools.csdevkit` | Autocompletado IntelliSense, depuración F5, compilación y solución de errores en C# .NET 8. |
+| **AWS Toolkit** | `amazonwebservices.aws-toolkit-vscode` | Explorar CloudWatch Logs, buckets S3, CloudFormation y recursos de AWS directamente en el panel lateral. |
+| **YAML** (Red Hat) | `redhat.vscode-yaml` | Resaltado y validación de sintaxis de CloudFormation (`!Ref`, `!Sub`, `!GetAtt` configurados en `.vscode/settings.json`). |
+| **CloudFormation Linter** | `kddejong.vscode-cfn-lint` | Resalta en rojo en el editor cualquier error de sintaxis o política en `infra/urponline-oneclick.yaml`. |
+| **SQLTools + PostgreSQL Driver** | `mtxr.sqltools` + `mtxr.sqltools-driver-pg` | Conectarse y ver las tablas (`Products`, `Orders`, `ProductEmbeddings`) de la base de datos `urp-postgres` sin salir de VS Code. |
+| **GitHub Actions** | `github.vscode-github-actions` | Monitorear el progreso y estado de los workflows `deploy-aws.yml` y `destroy-aws.yml` desde el editor. |
 
 ---
 
